@@ -123,15 +123,15 @@ def RR_scheduling(process_list, time_quantum ):
                 nextItem = queue1.get()
                 rem_bt[nextItem.id] = rem_bt[nextItem.id] + nextItem.burst_time
                 timeLastPreEmpt[nextItem.id] = current_time
-#                runQ.put(nextItem)
-                if(runQ.qsize()>0 and (runQ.queue[0].arrive_time>nextItem.arrive_time or runQ.queue[0].arrive_time==-1)):
-                    tempQ = queue.Queue()
-                    tempQ.put(nextItem)
-                    for elem in list(runQ.queue):
-                        tempQ.put(elem)
-                    runQ=tempQ
-                else:
-                    runQ.put(nextItem)
+                runQ.put(nextItem)
+#                if(runQ.qsize()>0 and (runQ.queue[0].arrive_time>nextItem.arrive_time or runQ.queue[0].arrive_time==-1)):
+#                    tempQ = queue.Queue()
+#                    tempQ.put(nextItem)
+#                    for elem in list(runQ.queue):
+#                        tempQ.put(elem)
+#                    runQ=tempQ
+#                else:
+#                    runQ.put(nextItem)
 #                
 #                for elem in list(runQ.queue):
 #                    print(elem)
@@ -178,7 +178,7 @@ def SRTF_scheduling(process_list):
     totalBurst = 0
     schedule = []
     current_time = 0
-    timeInQueue = 0
+#    timeInQueue = 0
     
     for process in process_list:
         if n < process.id:
@@ -224,7 +224,7 @@ def SRTF_scheduling(process_list):
 #        print(checkItem.burst_time)
 
         current_time = current_time+1
-        timeInQueue = timeInQueue+1
+#        timeInQueue = timeInQueue+1
 #        print("Running ID: " + str(queueItem.id))
 #        print("current_time: " + str(current_time))
 #        print("total bt: " + str(sum(rem_bt)))
@@ -298,9 +298,143 @@ def SRTF_scheduling(process_list):
             
     return (schedule, sum(wt)/len(process_list))
 
-def SJF_scheduling(process_list, alpha):
-    return (["to be completed, scheduling SJF without using information from process.burst_time"],0.0)
+def predict_burst(a, t_n ,T_n):
+    return a*t_n + (1 - a)* T_n
 
+def SJF_scheduling(process_list, alpha):
+    n = 0
+    maxArrival = 0
+    totalBurst = 0
+    schedule = []
+    current_time = 0
+#    timeInQueue = 0
+    
+    for process in process_list:
+        if n < process.id:
+            n = process.id
+        if maxArrival < process.arrive_time:
+            maxArrival = process.arrive_time
+        totalBurst = totalBurst + process.burst_time
+    
+    n = n + 1
+#    print(n)
+    
+    rem_bt = [0] * n 
+    wt = [0] * n 
+    timeLastPreEmpt = [0] * n 
+    tp_n = [5] * n 
+    
+    runQ = queue.PriorityQueue()
+    queue1 = queue.Queue()
+    
+    for process in process_list:
+        queue1.put(process)
+        
+#    print(list(queue1.queue))
+#    for elem in list(queue1.queue):
+#        print(elem)
+        
+    queueItem = queue1.get()
+    rem_bt[queueItem.id] = queueItem.burst_time
+    tp_n[queueItem.id] = queueItem.burst_time + predict_burst(alpha, rem_bt[queueItem.id] ,tp_n[queueItem.id])
+    
+    runQ.put((tp_n[queueItem.id],str(queueItem.id)))
+#    print(rem_bt)
+#    print(wt)
+    
+    print(tp_n)
+    
+    firstItem = True
+    
+    while(runQ.empty()==False or queue1.empty()==False):
+        if(firstItem):
+            queueItem = runQ.get()
+            queueItem = Process(int(queueItem[1]),-1,queueItem[0])
+            firstItem=False
+            schedule.append((current_time,queueItem.id))
+
+#        print(checkItem.id)
+#        print(checkItem.arrive_time)
+#        print(checkItem.burst_time)
+
+        current_time = current_time+1
+#        timeInQueue = timeInQueue+1
+#        print("Running ID: " + str(queueItem.id))
+#        print("current_time: " + str(current_time))
+#        print("total bt: " + str(sum(rem_bt)))
+
+        if(rem_bt[queueItem.id]-1>0):
+#            print("here")
+            rem_bt[queueItem.id] = rem_bt[queueItem.id]-1
+        elif(rem_bt[queueItem.id]-1==0):
+            rem_bt[queueItem.id] = 0
+
+        if(queue1.empty()==False):
+            checkItem = queue1.queue[0]
+            if(checkItem.arrive_time==current_time):
+                nextItem = queue1.get()
+                rem_bt[nextItem.id] = rem_bt[nextItem.id] + nextItem.burst_time
+                tp_n[nextItem.id] = nextItem.burst_time + predict_burst(alpha, rem_bt[nextItem.id] ,tp_n[nextItem.id])
+            
+                
+#                runQ.put((rem_bt[nextItem.id],str(nextItem.id)))
+                
+#                print("compare burst time" + str(rem_bt[nextItem.id]) + "," + str(rem_bt[queueItem.id]))
+#                if(rem_bt[queueItem.id] != 0 and rem_bt[nextItem.id]<rem_bt[queueItem.id]):
+#                    print("take"+str(nextItem.id))
+#                    runQ.put((rem_bt[queueItem.id],str(queueItem.id)))
+#                    timeLastPreEmpt[queueItem.id] = current_time
+#                    queueItem = Process(nextItem.id,-1,rem_bt[nextItem.id])
+#                    schedule.append((current_time,nextItem.id))
+#                else:
+                runQ.put((tp_n[nextItem.id],str(nextItem.id)))
+                timeLastPreEmpt[nextItem.id] = current_time
+#                    print(timeLastPreEmpt)
+#                if(runQ.qsize()>0 and (runQ.queue[0].arrive_time>nextItem.arrive_time or runQ.queue[0].arrive_time==-1)):
+#                    tempQ = queue.Queue()
+#                    tempQ.put(nextItem)
+#                    for elem in list(runQ.queue):
+#                        tempQ.put(elem)
+#                    runQ=tempQ
+#                else:
+#                    runQ.put(nextItem)
+                
+                for elem in list(runQ.queue):
+                    print(elem)
+                print('--')
+
+        if(rem_bt[queueItem.id]==0 and runQ.empty()==False):
+#            for elem in list(runQ.queue):
+#                print(elem)
+            queueItem = runQ.get()
+            queueItem = Process(int(queueItem[1]),-1,queueItem[0])
+            wt[queueItem.id] = wt[queueItem.id] + current_time-timeLastPreEmpt[queueItem.id]
+#            print("take"+str(queueItem.id))
+#            print(str(current_time) + "," + str(queueItem.id))
+            schedule.append((current_time,queueItem.id))
+
+#        for elem in list(runQ.queue):
+#            print(elem)
+
+#        print(rem_bt)
+            
+        print(tp_n)
+
+            
+        if(current_time>40):
+            break
+                
+#        print(str(timeInQueue)+", "+str(time_quantum))
+#        print(current_time)
+#        print(rem_bt)
+
+#        print(wt)
+        
+#        print("queue1 size " + str(queue1.qsize()))
+#        print("runQ size " + str(runQ.qsize()))
+#        break
+            
+    return (schedule, sum(wt)/len(process_list))
 
 def read_input():
     result = []
