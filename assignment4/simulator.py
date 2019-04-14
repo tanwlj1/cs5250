@@ -322,7 +322,8 @@ def SJF_scheduling(process_list, alpha):
     rem_bt = [0] * n 
     wt = [0] * n 
     timeLastPreEmpt = [0] * n 
-    tp_n = [5] * n 
+    tp_n = [-1] * n 
+    lastBurstTime = [-1] * n
     
     runQ = queue.PriorityQueue()
     queue1 = queue.Queue()
@@ -336,10 +337,12 @@ def SJF_scheduling(process_list, alpha):
         
     queueItem = queue1.get()
     rem_bt[queueItem.id] = queueItem.burst_time
-    tp_n[queueItem.id] = queueItem.burst_time + predict_burst(alpha, rem_bt[queueItem.id] ,tp_n[queueItem.id])
+#    tp_n[queueItem.id] = predict_burst(alpha, rem_bt[queueItem.id] ,tp_n[queueItem.id])
+    tp_n[queueItem.id] = 5
+    lastBurstTime[queueItem.id] = queueItem.burst_time
     
     runQ.put((tp_n[queueItem.id],str(queueItem.id)))
-#    print(rem_bt)
+    print(rem_bt)
 #    print(wt)
     
     print(tp_n)
@@ -352,16 +355,16 @@ def SJF_scheduling(process_list, alpha):
             queueItem = Process(int(queueItem[1]),-1,queueItem[0])
             firstItem=False
             schedule.append((current_time,queueItem.id))
-
+#            print(queueItem)
 #        print(checkItem.id)
 #        print(checkItem.arrive_time)
 #        print(checkItem.burst_time)
 
         current_time = current_time+1
 #        timeInQueue = timeInQueue+1
-#        print("Running ID: " + str(queueItem.id))
-#        print("current_time: " + str(current_time))
-#        print("total bt: " + str(sum(rem_bt)))
+        print("Running ID: " + str(queueItem.id))
+        print("current_time: " + str(current_time))
+        print("total bt: " + str(sum(rem_bt)))
 
         if(rem_bt[queueItem.id]-1>0):
 #            print("here")
@@ -373,8 +376,14 @@ def SJF_scheduling(process_list, alpha):
             checkItem = queue1.queue[0]
             if(checkItem.arrive_time==current_time):
                 nextItem = queue1.get()
-                rem_bt[nextItem.id] = rem_bt[nextItem.id] + nextItem.burst_time
-                tp_n[nextItem.id] = nextItem.burst_time + predict_burst(alpha, rem_bt[nextItem.id] ,tp_n[nextItem.id])
+                if tp_n[nextItem.id] == -1:
+                    tp_n[nextItem.id] = 5
+                else:
+                    tp_n[nextItem.id] = predict_burst(alpha, lastBurstTime[nextItem.id] ,tp_n[nextItem.id])
+                
+                lastBurstTime[nextItem.id] = nextItem.burst_time
+                
+                
             
                 
 #                runQ.put((rem_bt[nextItem.id],str(nextItem.id)))
@@ -387,8 +396,13 @@ def SJF_scheduling(process_list, alpha):
 #                    queueItem = Process(nextItem.id,-1,rem_bt[nextItem.id])
 #                    schedule.append((current_time,nextItem.id))
 #                else:
-                runQ.put((tp_n[nextItem.id],str(nextItem.id)))
+                if rem_bt[queueItem.id] == 0 and queueItem.id == nextItem.id:
+                    pass
+                else:
+                    runQ.put((tp_n[nextItem.id],str(nextItem.id)))
+                rem_bt[nextItem.id] = rem_bt[nextItem.id] + nextItem.burst_time
                 timeLastPreEmpt[nextItem.id] = current_time
+
 #                    print(timeLastPreEmpt)
 #                if(runQ.qsize()>0 and (runQ.queue[0].arrive_time>nextItem.arrive_time or runQ.queue[0].arrive_time==-1)):
 #                    tempQ = queue.Queue()
@@ -403,14 +417,19 @@ def SJF_scheduling(process_list, alpha):
                     print(elem)
                 print('--')
 
+            
         if(rem_bt[queueItem.id]==0 and runQ.empty()==False):
 #            for elem in list(runQ.queue):
+#            print("here")
 #                print(elem)
             queueItem = runQ.get()
             queueItem = Process(int(queueItem[1]),-1,queueItem[0])
-            wt[queueItem.id] = wt[queueItem.id] + current_time-timeLastPreEmpt[queueItem.id]
+            if timeLastPreEmpt[queueItem.id] > 0:
+                wt[queueItem.id] = wt[queueItem.id] + current_time-timeLastPreEmpt[queueItem.id]
+            timeLastPreEmpt[queueItem.id] = 0
 #            print("take"+str(queueItem.id))
-#            print(str(current_time) + "," + str(queueItem.id))
+            print(str(current_time) + "," + str(queueItem.id))
+            
             schedule.append((current_time,queueItem.id))
 
 #        for elem in list(runQ.queue):
@@ -418,11 +437,13 @@ def SJF_scheduling(process_list, alpha):
 
 #        print(rem_bt)
             
-        print(tp_n)
-
+#        print(tp_n)
+#        print(timeLastPreEmpt)
+#        print(wt)
+#        print('--')
             
-        if(current_time>40):
-            break
+#        if(current_time>40):
+#            break
                 
 #        print(str(timeInQueue)+", "+str(time_quantum))
 #        print(current_time)
@@ -433,7 +454,9 @@ def SJF_scheduling(process_list, alpha):
 #        print("queue1 size " + str(queue1.qsize()))
 #        print("runQ size " + str(runQ.qsize()))
 #        break
-            
+#    print(schedule)
+#    print(sum(wt))
+#    print(len(process_list))
     return (schedule, sum(wt)/len(process_list))
 
 def read_input():
